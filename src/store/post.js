@@ -28,6 +28,14 @@ export const PostModel = createModel()({
       ...state,
       openModal: payload,
     }),
+    setForm: (state, payload) => ({
+      ...state,
+      form: payload,
+    }),
+    setIsEdit: (state, payload) => ({
+      ...state,
+      isEdit: payload,
+    }),
   },
   effects: (dispatch) => ({
     async handleGetPosts() {
@@ -41,6 +49,59 @@ export const PostModel = createModel()({
         console.log(e);
       } finally {
         dispatch.PostModel.setLoading(false);
+      }
+    },
+    async handleGetPost({ id, isEdit }) {
+      try {
+        const res = await fetch(`http://localhost:3000/posts/${id}`);
+        const { title, paragraph } = await res.json();
+        dispatch.PostModel.setForm({ title, paragraph });
+      } catch (e) {
+        console.log(e);
+      } finally {
+        dispatch.PostModel.setIsEdit({
+          ...isEdit,
+          loading: false,
+        });
+      }
+    },
+    async handleCreatePost({ form }) {
+      try {
+        await fetch("http://localhost:3000/posts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(form),
+        });
+        dispatch.PostModel.handleGetPosts();
+      } catch (e) {
+        console.log(e);
+      }
+    },
+    async handleEditPost({ form, isEdit }) {
+      try {
+        await fetch(`http://localhost:3000/posts/${isEdit.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(form),
+        });
+        dispatch.PostModel.handleGetPosts();
+      } catch (e) {
+        console.log(e);
+      }
+    },
+    async handleDeletePost({ id }) {
+      try {
+        dispatch.PostModel.setLoading(true);
+        await fetch(`http://localhost:3000/posts/${id}`, {
+          method: "DELETE",
+        });
+        dispatch.PostModel.handleGetPosts();
+      } catch (e) {
+        console.log(e);
       }
     },
   }),

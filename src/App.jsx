@@ -11,31 +11,20 @@ import {
 } from "@carbon/react";
 import { Add, Edit, TrashCan } from "@carbon/react/icons";
 import { Text } from "@carbon/react/lib/components/Text";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Modal from "./components/Modal";
 import { useDispatch, useSelector } from "react-redux";
 
 function App() {
   const dispatch = useDispatch();
-  const posts = useSelector(store => store.PostModel.posts)
-  const loading = useSelector(store => store.PostModel.loading)
-  const openModal = useSelector(store => store.PostModel.openModal)
-  const [form, setForm] = useState({
-    title: "",
-    paragraph: "",
-  });
-  const [isEdit, setIsEdit] = useState({
-    id: "",
-    mode: false,
-    loading: false,
-  });
+  const posts = useSelector((store) => store.PostModel.posts);
+  const loading = useSelector((store) => store.PostModel.loading);
+  const openModal = useSelector((store) => store.PostModel.openModal);
+  const form = useSelector((store) => store.PostModel.form);
+  const isEdit = useSelector((store) => store.PostModel.isEdit);
 
   const handleCloseModal = () => {
-    setIsEdit({
-      id: "",
-      mode: false,
-      loading: false,
-    });
+    handleClearIsEdit();
     handleClearForm();
     dispatch.PostModel.setOpenModal(false);
   };
@@ -43,84 +32,52 @@ function App() {
   const handleOpenModal = () => dispatch.PostModel.setOpenModal(true);
 
   const handleClearForm = () =>
-    setForm({
+    dispatch.PostModel.setForm({
       title: "",
       paragraph: "",
     });
 
-  const handleChange = (e) => {
-    setForm((state) => ({
-      ...state,
-      [e.target.name]: e.target.value,
-    }));
-  };
-
-  const handleSubmit = () => {
-    dispatch.PostModel.setLoading(true)
-    handleCloseModal();
-    handleClearForm();
-    if (isEdit.mode) {
-      fetch(`http://localhost:3000/posts/${isEdit.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      }).then(() => {
-        dispatch.PostModel.handleGetPosts()
-      });
-    } else {
-      fetch("http://localhost:3000/posts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      }).then(() => {
-        dispatch.PostModel.handleGetPosts()
-      });
-    }
-    setIsEdit({
-      mode: false,
+  const handleClearIsEdit = () =>
+    dispatch.PostModel.setIsEdit({
       id: "",
+      mode: false,
       loading: false,
+    });
+
+  const handleChange = (e) => {
+    dispatch.PostModel.setForm({
+      ...form,
+      [e.target.name]: e.target.value,
     });
   };
 
+  const handleSubmit = () => {
+    dispatch.PostModel.setLoading(true);
+    handleCloseModal();
+    handleClearForm();
+    if (isEdit.mode) {
+      dispatch.PostModel.handleEditPost({ form, isEdit })
+    } else {
+      dispatch.PostModel.handleCreatePost({ form })
+    }
+    handleClearIsEdit();
+  };
+
   const handleEdit = (id) => {
-    setIsEdit({
+    dispatch.PostModel.setIsEdit({
       id,
       mode: true,
       loading: true,
     });
-    handleGetPost(id);
+    dispatch.PostModel.handleGetPost({ id, isEdit })
     handleOpenModal();
   };
 
-  const handleDelete = (id) => {
-    dispatch.PostModel.setLoading(true)
-    fetch(`http://localhost:3000/posts/${id}`, {
-      method: "DELETE",
-    }).then(() => {
-      dispatch.PostModel.handleGetPosts()
-    });
-  };
-
-  const handleGetPost = (id) => {
-    fetch(`http://localhost:3000/posts/${id}`)
-      .then((res) => res.json())
-      .then(({ title, paragraph }) => setForm({ title, paragraph }))
-      .finally(() =>
-        setIsEdit((state) => ({
-          ...state,
-          loading: false,
-        }))
-      );
-  };
+  const handleDelete = (id) => dispatch.PostModel.handleDeletePost({ id })
 
   useEffect(() => {
-    dispatch.PostModel.setLoading(true)
-    dispatch.PostModel.handleGetPosts()
+    dispatch.PostModel.setLoading(true);
+    dispatch.PostModel.handleGetPosts();
   }, []);
 
   if (loading)
@@ -132,7 +89,7 @@ function App() {
           </Column>
         </Grid>
         <Grid fullWidth>
-          {Array(10)
+          {Array(30)
             .fill(0)
             .map((_, index) => (
               <Column key={index} sm={4} md={4} lg={4}>
