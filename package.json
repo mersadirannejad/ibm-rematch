@@ -8,13 +8,14 @@
     "build": "vite build",
     "lint": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "server": "json-server --watch --delay 500 db.json"
+    "server": "json-server --watch --delay 1000 db.json"
   },
   "dependencies": {
     "@carbon/ibm-products": "^2.1.2",
     "@carbon/react": "^1.31.3",
     "@carbon/styles": "^1.31.2",
     "@rematch/core": "^2.2.0",
+    "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-redux": "^8.1.0",

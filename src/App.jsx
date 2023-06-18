@@ -3,17 +3,16 @@ import {
   Button,
   ButtonSkeleton,
   Column,
-  ComposedModal,
   FormGroup,
   Grid,
-  ModalBody,
-  ModalHeader,
   SkeletonPlaceholder,
   TextInput,
+  TextInputSkeleton,
 } from "@carbon/react";
 import { Add, Edit, TrashCan } from "@carbon/react/icons";
 import { Text } from "@carbon/react/lib/components/Text";
 import { useEffect, useState } from "react";
+import Modal from "./components/Modal";
 
 function App() {
   const [posts, setPosts] = useState([]);
@@ -23,6 +22,29 @@ function App() {
     title: "",
     paragraph: "",
   });
+  const [isEdit, setIsEdit] = useState({
+    id: "",
+    mode: false,
+    loading: false,
+  });
+
+  const handleCloseModal = () => {
+    setIsEdit({
+      id: "",
+      mode: false,
+      loading: false,
+    });
+    handleClearForm();
+    setOpenModal(false);
+  };
+
+  const handleOpenModal = () => setOpenModal(true);
+
+  const handleClearForm = () =>
+    setForm({
+      title: "",
+      paragraph: "",
+    });
 
   const handleChange = (e) => {
     setForm((state) => ({
@@ -33,47 +55,84 @@ function App() {
 
   const handleSubmit = () => {
     setLoading(true);
-    setForm({
-      title: "",
-      paragraph: "",
+    handleCloseModal();
+    handleClearForm();
+    if (isEdit.mode) {
+      fetch(`http://localhost:3000/posts/${isEdit.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      }).then(() => {
+        handleGetPosts();
+      });
+    } else {
+      fetch("http://localhost:3000/posts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      }).then(() => {
+        handleGetPosts();
+      });
+    }
+    setIsEdit({
+      mode: false,
+      id: "",
+      loading: false,
     });
-    setOpenModal(false);
-    fetch("http://localhost:3000/posts", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(form),
-    })
-      .then(() => {
-        handleGetPosts()
-      })
   };
 
   const handleEdit = (id) => {
-    console.log("edit", id);
+    setIsEdit({
+      id,
+      mode: true,
+      loading: true,
+    });
+    handleGetPost(id);
+    handleOpenModal();
   };
 
   const handleDelete = (id) => {
     setLoading(true);
     fetch(`http://localhost:3000/posts/${id}`, {
       method: "DELETE",
-    })
-      .then(() => {
-        handleGetPosts()
-      })
+    }).then(() => {
+      handleGetPosts();
+    });
   };
 
-  const handleGetPosts = () => {
-    fetch("http://localhost:3000/posts")
+  const handleGetPosts = (controller) => {
+    fetch("http://localhost:3000/posts?_sort=id&_order=desc", {
+      signal: controller?.signal,
+    })
       .then((res) => res.json())
       .then((data) => setPosts(data))
       .finally(() => setLoading(false));
-  }
+  };
+
+  const handleGetPost = (id) => {
+    fetch(`http://localhost:3000/posts/${id}`)
+      .then((res) => res.json())
+      .then(({ title, paragraph }) => setForm({ title, paragraph }))
+      .finally(() =>
+        setIsEdit((state) => ({
+          ...state,
+          loading: false,
+        }))
+      );
+  };
 
   useEffect(() => {
     setLoading(true);
-    handleGetPosts()
+    const controller = new AbortController();
+    handleGetPosts(controller);
+
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   if (loading)
@@ -100,45 +159,13 @@ function App() {
     <>
       <Grid fullWidth>
         <Column sm={4} md={2} lg={2}>
-          <Button renderIcon={Add} onClick={() => setOpenModal(true)}>
+          <Button
+            renderIcon={Add}
+            disabled={isEdit.mode}
+            onClick={handleOpenModal}
+          >
             Add
           </Button>
-          <ComposedModal
-            open={openModal}
-            onClose={() => setOpenModal(false)}
-            size="lg"
-          >
-            <ModalHeader />
-            <ModalBody>
-              <FormGroup
-                legendId="form-group-1"
-                legendText="FormGroup Legend"
-                style={{
-                  maxWidth: "400px",
-                }}
-              >
-                <div>
-                  <TextInput
-                    id="Title"
-                    labelText="Title"
-                    value={form.title}
-                    onChange={handleChange}
-                    name="title"
-                  />
-                  <TextInput
-                    id="Paragraph"
-                    labelText="Paragraph"
-                    value={form.paragraph}
-                    onChange={handleChange}
-                    name="paragraph"
-                  />
-                  <Button type="submit" onClick={handleSubmit}>
-                    Submit
-                  </Button>
-                </div>
-              </FormGroup>
-            </ModalBody>
-          </ComposedModal>
         </Column>
       </Grid>
       <Grid fullWidth>
@@ -171,6 +198,41 @@ function App() {
             </ProductiveCard>
           </Column>
         ))}
+        <Modal open={openModal} onClose={handleCloseModal}>
+          <FormGroup legendId="form-group-1" legendText="FormGroup Legend">
+            {isEdit.loading ? (
+              <div>
+                <TextInputSkeleton />
+                <TextInputSkeleton />
+                <ButtonSkeleton />
+              </div>
+            ) : (
+              <div>
+                <TextInput
+                  id="Title"
+                  labelText="Title"
+                  value={form.title}
+                  onChange={handleChange}
+                  name="title"
+                />
+                <TextInput
+                  id="Paragraph"
+                  labelText="Paragraph"
+                  value={form.paragraph}
+                  onChange={handleChange}
+                  name="paragraph"
+                />
+                <Button
+                  type="submit"
+                  style={{ marginTop: "1rem" }}
+                  onClick={handleSubmit}
+                >
+                  Submit
+                </Button>
+              </div>
+            )}
+          </FormGroup>
+        </Modal>
       </Grid>
     </>
   );

@@ -9,7 +9,17 @@ export const PostModel = createModel({
       title: "",
       paragraph: "",
     },
+    isEdit: {
+      id: "",
+      mode: false,
+      loading: false,
+    },
   },
-  reducers: {},
-  effects: () => {},
+  reducers: {
+    setPosts: (state, payload) => ({
+      ...state,
+      posts: payload,
+    }),
+  },
+  
 });
