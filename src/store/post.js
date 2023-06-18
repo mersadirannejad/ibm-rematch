@@ -14,6 +14,11 @@ export const PostModel = createModel()({
       mode: false,
       loading: false,
     },
+    detail: {
+      id: "",
+      title: "",
+      paragraph: "",
+    }
   },
   reducers: {
     setPosts: (state, payload) => ({
@@ -36,6 +41,10 @@ export const PostModel = createModel()({
       ...state,
       isEdit: payload,
     }),
+    setDetail: (state, payload) => ({
+      ...state,
+      detail: payload,
+    }),
   },
   effects: (dispatch) => ({
     async handleGetPosts() {
@@ -45,6 +54,21 @@ export const PostModel = createModel()({
         );
         const data = await res.json();
         dispatch.PostModel.setPosts(data);
+      } catch (e) {
+        console.log(e);
+      } finally {
+        dispatch.PostModel.setLoading(false);
+      }
+    },
+    async handleGetPostDetail({ id }) {
+      dispatch.PostModel.setLoading(true);
+      console.log(id)
+      try {
+        const res = await fetch(
+          `http://localhost:3000/posts/${id}`
+        );
+        const data = await res.json();
+        dispatch.PostModel.setDetail(data);
       } catch (e) {
         console.log(e);
       } finally {
