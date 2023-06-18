@@ -13,11 +13,13 @@ import { Add, Edit, TrashCan } from "@carbon/react/icons";
 import { Text } from "@carbon/react/lib/components/Text";
 import { useEffect, useState } from "react";
 import Modal from "./components/Modal";
+import { useDispatch, useSelector } from "react-redux";
 
 function App() {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [openModal, setOpenModal] = useState(false);
+  const dispatch = useDispatch();
+  const posts = useSelector(store => store.PostModel.posts)
+  const loading = useSelector(store => store.PostModel.loading)
+  const openModal = useSelector(store => store.PostModel.openModal)
   const [form, setForm] = useState({
     title: "",
     paragraph: "",
@@ -35,10 +37,10 @@ function App() {
       loading: false,
     });
     handleClearForm();
-    setOpenModal(false);
+    dispatch.PostModel.setOpenModal(false);
   };
 
-  const handleOpenModal = () => setOpenModal(true);
+  const handleOpenModal = () => dispatch.PostModel.setOpenModal(true);
 
   const handleClearForm = () =>
     setForm({
@@ -54,7 +56,7 @@ function App() {
   };
 
   const handleSubmit = () => {
-    setLoading(true);
+    dispatch.PostModel.setLoading(true)
     handleCloseModal();
     handleClearForm();
     if (isEdit.mode) {
@@ -65,7 +67,7 @@ function App() {
         },
         body: JSON.stringify(form),
       }).then(() => {
-        handleGetPosts();
+        dispatch.PostModel.handleGetPosts()
       });
     } else {
       fetch("http://localhost:3000/posts", {
@@ -75,7 +77,7 @@ function App() {
         },
         body: JSON.stringify(form),
       }).then(() => {
-        handleGetPosts();
+        dispatch.PostModel.handleGetPosts()
       });
     }
     setIsEdit({
@@ -96,21 +98,12 @@ function App() {
   };
 
   const handleDelete = (id) => {
-    setLoading(true);
+    dispatch.PostModel.setLoading(true)
     fetch(`http://localhost:3000/posts/${id}`, {
       method: "DELETE",
     }).then(() => {
-      handleGetPosts();
+      dispatch.PostModel.handleGetPosts()
     });
-  };
-
-  const handleGetPosts = (controller) => {
-    fetch("http://localhost:3000/posts?_sort=id&_order=desc", {
-      signal: controller?.signal,
-    })
-      .then((res) => res.json())
-      .then((data) => setPosts(data))
-      .finally(() => setLoading(false));
   };
 
   const handleGetPost = (id) => {
@@ -126,13 +119,8 @@ function App() {
   };
 
   useEffect(() => {
-    setLoading(true);
-    const controller = new AbortController();
-    handleGetPosts(controller);
-
-    return () => {
-      controller.abort();
-    };
+    dispatch.PostModel.setLoading(true)
+    dispatch.PostModel.handleGetPosts()
   }, []);
 
   if (loading)
